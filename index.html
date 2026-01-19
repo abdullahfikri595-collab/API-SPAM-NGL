@@ -1,42 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>NGL API SYSTEM</title>
-</head>
-<body style="background:#000; color:#0f0; font-family:monospace; padding:20px;">
-    <div id="log">READY_TO_SEND...</div>
+<html>
+<head><title>API</title></head>
+<body style="background:#000; color:#000;"> <script>
+    (async () => {
+        const p = new URLSearchParams(window.location.search);
+        const u = p.get('user'), m = p.get('msg'), q = p.get('qty') || 1, d = p.get('delay') || 0;
 
-    <script>
-        async function run() {
-            const p = new URLSearchParams(window.location.search);
-            const u = p.get('user');
-            const m = p.get('msg');
-            const q = parseInt(p.get('qty')) || 1;
-            const d = parseInt(p.get('delay')) || 0;
-            const log = document.getElementById('log');
-
-            if (!u || !m) {
-                log.innerHTML = "STATUS: ERROR_MISSING_PARAMS<br>Usage: ?user=NAME&msg=TEXT&qty=10&delay=100";
-                return;
+        if (u && m) {
+            for (let i = 0; i < q; i++) {
+                await fetch('https://ngl.link/api/submit', {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `username=${u}&question=${m}&deviceId=api${Math.random()}`
+                });
+                if (d > 0) await new Promise(r => setTimeout(r, d));
             }
-
-            for (let i = 1; i <= q; i++) {
-                log.innerText = `SENDING_${i}_OF_${q}...`;
-                try {
-                    await fetch('https://ngl.link/api/submit', {
-                        method: 'POST',
-                        mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `username=${u}&question=${m}&deviceId=hp-${Math.random().toString(36).substr(2, 9)}`
-                    });
-                } catch (e) {}
-                
-                if (d > 0 && i < q) await new Promise(r => setTimeout(r, d));
-            }
-            log.innerText = "SUCCESS";
+            document.body.innerText = "DONE"; // Cuma muncul tulisan DONE kalau selesai
+        } else {
+            document.body.innerText = "READY";
         }
-        run();
-    </script>
+    })();
+</script>
 </body>
 </html>
