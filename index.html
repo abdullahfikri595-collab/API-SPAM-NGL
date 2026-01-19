@@ -1,26 +1,29 @@
 <!DOCTYPE html>
 <html>
-<head><title>API</title></head>
-<body style="background:#000; color:#000;"> <script>
-    (async () => {
-        const p = new URLSearchParams(window.location.search);
-        const u = p.get('user'), m = p.get('msg'), q = p.get('qty') || 1, d = p.get('delay') || 0;
+<head><title>NGL API</title></head>
+<body style="background:#000;color:#0f0;font-family:monospace;padding:20px;">
+    <div id="out">READY...</div>
+    <script>
+        (async () => {
+            const p = new URLSearchParams(window.location.search);
+            const u = p.get('user'), m = p.get('msg'), q = p.get('qty') || 1, d = p.get('delay') || 0;
 
-        if (u && m) {
-            for (let i = 0; i < q; i++) {
-                await fetch('https://ngl.link/api/submit', {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                    body: `username=${u}&question=${m}&deviceId=api${Math.random()}`
-                });
-                if (d > 0) await new Promise(r => setTimeout(r, d));
+            if (u && m) {
+                document.getElementById('out').innerText = "SENDING...";
+                for (let i = 1; i <= q; i++) {
+                    // Trik 'no-cors' supaya tetep kekirim meskipun di HP
+                    await fetch(`https://ngl.link/api/submit`, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                        body: `username=${u}&question=${m}&deviceId=api${Math.random()}`
+                    });
+                    document.getElementById('out').innerText = `SENT: ${i}/${q}`;
+                    if (d > 0) await new Promise(r => setTimeout(r, d));
+                }
+                document.getElementById('out').innerText = "SUCCESS ALL!";
             }
-            document.body.innerText = "DONE"; // Cuma muncul tulisan DONE kalau selesai
-        } else {
-            document.body.innerText = "READY";
-        }
-    })();
-</script>
+        })();
+    </script>
 </body>
 </html>
