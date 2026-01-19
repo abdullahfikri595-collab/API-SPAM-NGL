@@ -1,27 +1,27 @@
 <!DOCTYPE html>
 <html>
-<head><title>NGL API</title></head>
-<body style="background:#000;color:#0f0;font-family:monospace;padding:20px;">
-    <div id="out">READY...</div>
+<body style="background:#000;color:#0f0;font-family:monospace;">
+    <div id="status">WAITING...</div>
     <script>
         (async () => {
             const p = new URLSearchParams(window.location.search);
-            const u = p.get('user'), m = p.get('msg'), q = p.get('qty') || 1, d = p.get('delay') || 0;
+            const user = p.get('user'); // Ini bakal ngambil username target
+            const msg = p.get('msg');
+            const qty = p.get('qty') || 1;
 
-            if (u && m) {
-                document.getElementById('out').innerText = "SENDING...";
-                for (let i = 1; i <= q; i++) {
-                    // Trik 'no-cors' supaya tetep kekirim meskipun di HP
-                    await fetch(`https://ngl.link/api/submit`, {
+            if (user && msg) {
+                document.getElementById('status').innerText = `ATTACKING NGL.LINK/${user}...`;
+                
+                for (let i = 1; i <= qty; i++) {
+                    await fetch('https://ngl.link/api/submit', {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: `username=${u}&question=${m}&deviceId=api${Math.random()}`
+                        body: `username=${user}&question=${msg}&deviceId=hp${Math.random()}`
                     });
-                    document.getElementById('out').innerText = `SENT: ${i}/${q}`;
-                    if (d > 0) await new Promise(r => setTimeout(r, d));
+                    document.getElementById('status').innerText = `SENT TO NGL.LINK/${user} (${i}/${qty})`;
                 }
-                document.getElementById('out').innerText = "SUCCESS ALL!";
+                document.getElementById('status').innerText = "DONE!";
             }
         })();
     </script>
