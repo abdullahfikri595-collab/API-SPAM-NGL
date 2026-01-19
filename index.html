@@ -1,27 +1,25 @@
+
 <!DOCTYPE html>
 <html>
-<body style="background:#000;color:#0f0;font-family:monospace;">
-    <div id="status">WAITING...</div>
+<body style="background:#000;color:#0f0;">
     <script>
         (async () => {
             const p = new URLSearchParams(window.location.search);
-            const user = p.get('user'); // Ini bakal ngambil username target
+            const user = p.get('user'); // Ambil username (contoh: niomods)
             const msg = p.get('msg');
             const qty = p.get('qty') || 1;
 
             if (user && msg) {
-                document.getElementById('status').innerText = `ATTACKING NGL.LINK/${user}...`;
-                
-                for (let i = 1; i <= qty; i++) {
-                    await fetch('https://ngl.link/api/submit', {
+                for (let i = 0; i < qty; i++) {
+                    // Ini yang lo mau: langsung ke ngl.link/username
+                    await fetch(`https://ngl.link/${user}`, {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-                        body: `username=${user}&question=${msg}&deviceId=hp${Math.random()}`
+                        body: `question=${msg}&deviceId=hp${Math.random()}`
                     });
-                    document.getElementById('status').innerText = `SENT TO NGL.LINK/${user} (${i}/${qty})`;
                 }
-                document.getElementById('status').innerText = "DONE!";
+                document.body.innerText = "GAS TERKIRIM KE NGL.LINK/" + user.toUpperCase();
             }
         })();
     </script>
