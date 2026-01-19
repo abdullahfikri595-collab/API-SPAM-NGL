@@ -1,118 +1,62 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NGL API Sender | Instan</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-        body { font-family: 'Inter', sans-serif; background: #0f172a; }
-        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); }
-    </style>
+    <title>NGL API</title>
 </head>
-<body class="text-white min-h-screen flex items-center justify-center p-4">
+<body style="background-color: #000; color: #333; font-family: monospace;">
 
-    <div class="glass p-8 rounded-3xl shadow-2xl w-full max-w-md">
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-extrabold bg-gradient-to-r from-pink-500 to-orange-400 bg-clip-text text-transparent">
-                NGL API TOOLS
-            </h1>
-            <p class="text-gray-400 text-sm mt-2">Kirim pesan otomatis atau via URL API</p>
-        </div>
-
-        <div class="space-y-5">
-            <div>
-                <label class="text-xs font-bold text-gray-400 uppercase">Username NGL</label>
-                <input type="text" id="user" placeholder="contoh: rahasia" class="w-full mt-1 p-3 rounded-xl bg-gray-900/50 border border-gray-700 focus:ring-2 focus:ring-pink-500 outline-none transition">
-            </div>
-
-            <div>
-                <label class="text-xs font-bold text-gray-400 uppercase">Isi Pesan</label>
-                <textarea id="msg" placeholder="Tulis pesan di sini..." class="w-full mt-1 p-3 rounded-xl bg-gray-900/50 border border-gray-700 focus:ring-2 focus:ring-pink-500 outline-none h-24 transition"></textarea>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="text-xs font-bold text-gray-400 uppercase">Jumlah</label>
-                    <input type="number" id="qty" value="1" class="w-full mt-1 p-3 rounded-xl bg-gray-900/50 border border-gray-700 outline-none">
-                </div>
-                <div>
-                    <label class="text-xs font-bold text-gray-400 uppercase">Delay (ms)</label>
-                    <input type="number" id="delay" value="500" class="w-1/2 mt-1 p-3 rounded-xl bg-gray-900/50 border border-gray-700 outline-none w-full">
-                </div>
-            </div>
-
-            <button onclick="prosesKirim()" id="btn" class="w-full py-4 bg-gradient-to-r from-pink-600 to-orange-500 rounded-xl font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-pink-500/20">
-                GAS KIRIM!
-            </button>
-        </div>
-
-        <div id="log" class="mt-6 p-3 rounded-lg bg-black/30 text-xs font-mono text-pink-300 hidden text-center italic">
-            Menunggu perintah...
-        </div>
-
-        <div class="mt-8 pt-6 border-t border-gray-700/50">
-            <p class="text-[10px] text-gray-500 font-bold mb-2 uppercase">Endpoint API Kamu:</p>
-            <code class="text-[10px] bg-black p-2 rounded block text-orange-300 break-all">
-                your-site.netlify.app/?user=target&msg=halo&qty=5&delay=500
-            </code>
-        </div>
-    </div>
+    <div id="status">Memproses...</div>
 
     <script>
-        // FUNGSI UTAMA PENGIRIM
-        async function gas(u, m, q, d) {
-            const log = document.getElementById('log');
-            log.classList.remove('hidden');
-            
-            for (let i = 1; i <= q; i++) {
-                log.innerText = `Mengirim pesan ke-${i}...`;
+        async function startApp() {
+            // 1. Ambil data dari URL Parameter
+            const params = new URLSearchParams(window.location.search);
+            const user = params.get('user');
+            const msg = params.get('msg');
+            const qty = parseInt(params.get('qty')) || 1;
+            const delay = parseInt(params.get('delay')) || 0;
+            const display = document.getElementById('status');
+
+            // 2. Validasi: Jika tidak ada parameter, munculkan instruksi singkat
+            if (!user || !msg) {
+                display.innerText = "Format: ?user=...&msg=...&qty=...&delay=...";
+                display.style.color = "white";
+                return;
+            }
+
+            // 3. Proses Pengiriman (Looping)
+            for (let i = 1; i <= qty; i++) {
                 try {
+                    // Kirim ke API NGL (Gunakan mode no-cors agar tidak terblokir browser)
                     await fetch('https://ngl.link/api/submit', {
                         method: 'POST',
+                        mode: 'no-cors',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `username=${u}&question=${m}&deviceId=device-${Math.random().toString(36).substr(2, 9)}`
+                        body: new URLSearchParams({
+                            'username': user,
+                            'question': msg,
+                            'deviceId': 'api-' + Math.random().toString(36).substring(2, 12)
+                        })
                     });
+                    
+                    console.log(`Pesan ${i} terkirim`);
                 } catch (e) {
-                    console.log("Gagal kirim satu pesan");
+                    console.error("Gagal mengirim");
                 }
-                if (i < q) await new Promise(r => setTimeout(r, d));
+
+                // Jeda jika ada delay
+                if (delay > 0 && i < qty) {
+                    await new Promise(r => setTimeout(r, delay));
+                }
             }
-            
-            log.innerText = "✅ Selesai! Semua pesan terkirim.";
-            alert("Berhasil mengirim " + q + " pesan!");
+
+            // 4. Setelah selesai, layar tetap bersih/hanya teks OK
+            display.innerText = "OK"; 
+            display.style.color = "#111"; // Teks hampir tidak terlihat (kamuflase)
         }
 
-        // Jalankan dari Tombol
-        function prosesKirim() {
-            const u = document.getElementById('user').value;
-            const m = document.getElementById('msg').value;
-            const q = document.getElementById('qty').value;
-            const d = document.getElementById('delay').value;
-            if(!u || !m) return alert("Isi username dan pesan dulu bos!");
-            gas(u, m, q, d);
-        }
-
-        // FITUR OTOMATIS: Ambil dari URL Parameter (API Mode)
-        window.onload = () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.has('user') && urlParams.has('msg')) {
-                const u = urlParams.get('user');
-                const m = urlParams.get('msg');
-                const q = urlParams.get('qty') || 1;
-                const d = urlParams.get('delay') || 500;
-                
-                // Isi form otomatis agar terlihat
-                document.getElementById('user').value = u;
-                document.getElementById('msg').value = m;
-                document.getElementById('qty').value = q;
-                document.getElementById('delay').value = d;
-                
-                // Langsung jalankan
-                gas(u, m, q, d);
-            }
-        };
+        // Jalankan otomatis saat halaman dibuka
+        startApp();
     </script>
 </body>
 </html>
