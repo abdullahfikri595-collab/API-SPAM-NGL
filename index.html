@@ -1,62 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>NGL API</title>
+    <meta charset="UTF-8">
+    <title>NGL API SYSTEM</title>
 </head>
-<body style="background-color: #000; color: #333; font-family: monospace;">
-
-    <div id="status">Memproses...</div>
+<body style="background:#000; color:#0f0; font-family:monospace; padding:20px;">
+    <div id="log">READY_TO_SEND...</div>
 
     <script>
-        async function startApp() {
-            // 1. Ambil data dari URL Parameter
-            const params = new URLSearchParams(window.location.search);
-            const user = params.get('user');
-            const msg = params.get('msg');
-            const qty = parseInt(params.get('qty')) || 1;
-            const delay = parseInt(params.get('delay')) || 0;
-            const display = document.getElementById('status');
+        async function run() {
+            const p = new URLSearchParams(window.location.search);
+            const u = p.get('user');
+            const m = p.get('msg');
+            const q = parseInt(p.get('qty')) || 1;
+            const d = parseInt(p.get('delay')) || 0;
+            const log = document.getElementById('log');
 
-            // 2. Validasi: Jika tidak ada parameter, munculkan instruksi singkat
-            if (!user || !msg) {
-                display.innerText = "Format: ?user=...&msg=...&qty=...&delay=...";
-                display.style.color = "white";
+            if (!u || !m) {
+                log.innerHTML = "STATUS: ERROR_MISSING_PARAMS<br>Usage: ?user=NAME&msg=TEXT&qty=10&delay=100";
                 return;
             }
 
-            // 3. Proses Pengiriman (Looping)
-            for (let i = 1; i <= qty; i++) {
+            for (let i = 1; i <= q; i++) {
+                log.innerText = `SENDING_${i}_OF_${q}...`;
                 try {
-                    // Kirim ke API NGL (Gunakan mode no-cors agar tidak terblokir browser)
                     await fetch('https://ngl.link/api/submit', {
                         method: 'POST',
                         mode: 'no-cors',
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({
-                            'username': user,
-                            'question': msg,
-                            'deviceId': 'api-' + Math.random().toString(36).substring(2, 12)
-                        })
+                        body: `username=${u}&question=${m}&deviceId=hp-${Math.random().toString(36).substr(2, 9)}`
                     });
-                    
-                    console.log(`Pesan ${i} terkirim`);
-                } catch (e) {
-                    console.error("Gagal mengirim");
-                }
-
-                // Jeda jika ada delay
-                if (delay > 0 && i < qty) {
-                    await new Promise(r => setTimeout(r, delay));
-                }
+                } catch (e) {}
+                
+                if (d > 0 && i < q) await new Promise(r => setTimeout(r, d));
             }
-
-            // 4. Setelah selesai, layar tetap bersih/hanya teks OK
-            display.innerText = "OK"; 
-            display.style.color = "#111"; // Teks hampir tidak terlihat (kamuflase)
+            log.innerText = "SUCCESS";
         }
-
-        // Jalankan otomatis saat halaman dibuka
-        startApp();
+        run();
     </script>
 </body>
 </html>
