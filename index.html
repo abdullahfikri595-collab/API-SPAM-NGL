@@ -3,140 +3,108 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI URL Responder</title>
+    <title>AI Fast Responder</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .loading-dots:after {
-            content: '.';
-            animation: dots 1.5s steps(5, end) infinite;
-        }
-        @keyframes dots {
-            0%, 20% { content: '.'; }
-            40% { content: '..'; }
-            60% { content: '...'; }
-            80%, 100% { content: ''; }
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .cursor { display: inline-block; width: 8px; height: 1.2em; background: #3b82f6; margin-left: 4px; animation: blink 0.8s infinite; vertical-align: middle; }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
-<body class="bg-[#f8fafc] text-[#1e293b] min-h-screen flex flex-col items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-6">
 
-    <div id="app" class="w-full max-w-xl bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 p-8 md:p-12">
-        <div class="mb-8">
-            <span class="px-3 py-1 text-xs font-bold tracking-wider text-blue-600 uppercase bg-blue-50 rounded-full">Gemini 2.0 Flash</span>
-            <h1 class="text-3xl font-extrabold mt-4 tracking-tight">AI Assistant</h1>
+    <div class="w-full max-w-2xl">
+        <div id="status" class="text-blue-400 text-sm font-bold mb-2 tracking-widest uppercase opacity-0 transition-opacity duration-300">
+            Menghubungkan...
         </div>
         
-        <div id="status-container" class="mb-6 hidden">
-            <div class="flex items-center text-blue-500 font-medium">
-                <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Sedang memproses<span class="loading-dots"></span></span>
-            </div>
+        <div id="response-box" class="text-2xl md:text-4xl font-bold leading-tight">
+            <span id="output-text">Gunakan URL untuk bertanya...</span><span id="cursor" class="cursor hidden"></span>
         </div>
 
-        <div id="response-container" class="min-h-[100px]">
-            <p id="output-text" class="text-xl leading-relaxed text-slate-700 whitespace-pre-wrap">
-                Menunggu perintah dari URL...
-            </p>
-        </div>
-
-        <div id="error-container" class="mt-6 p-4 bg-red-50 border border-red-100 rounded-2xl hidden">
-            <p id="error-text" class="text-red-600 text-sm font-medium"></p>
-        </div>
-
-        <div class="mt-12 pt-6 border-t border-slate-100">
-            <p class="text-xs text-slate-400 font-medium italic">
-                Contoh: <span class="bg-slate-100 px-2 py-1 rounded">?q=siapa+namamu</span>
-            </p>
-        </div>
+        <div id="error-log" class="mt-8 text-red-400 text-sm font-mono hidden"></div>
     </div>
 
     <script>
-        // API Configuration
         const API_KEY = "AIzaSyCUyk7q17Z30FRpIFhFVzF61kruO0Au_-w";
-        const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+        // Menggunakan endpoint stream untuk kecepatan maksimal
+        const STREAM_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=" + API_KEY;
 
-        const outputText = document.getElementById('output-text');
-        const statusContainer = document.getElementById('status-container');
-        const errorContainer = document.getElementById('error-container');
-        const errorText = document.getElementById('error-text');
+        async function startStreaming(prompt) {
+            const output = document.getElementById('output-text');
+            const cursor = document.getElementById('cursor');
+            const status = document.getElementById('status');
+            
+            output.innerText = "";
+            cursor.classList.remove('hidden');
+            status.style.opacity = "1";
+            status.innerText = "Memproses...";
 
-        async function fetchGemini(prompt, retries = 5, delay = 1000) {
             try {
-                const response = await fetch(ENDPOINT, {
+                const response = await fetch(STREAM_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-goog-api-key': API_KEY
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{
-                            parts: [{ 
-                                text: `Jawab dengan gaya bahasa yang ramah. Jika ditanya identitas, katakan: "Saya adalah Gemini, asisten AI yang diciptakan oleh Google." Pertanyaan: ${prompt}` 
-                            }]
+                            parts: [{ text: `Jawab dengan singkat dan padat. Jika ditanya siapa kamu, jawab "Saya Gemini, AI ciptaan Google." Pertanyaan: ${prompt}` }]
                         }]
                     })
                 });
 
-                if (!response.ok) {
-                    if (response.status === 429 && retries > 0) {
-                        await new Promise(res => setTimeout(res, delay));
-                        return fetchGemini(prompt, retries - 1, delay * 2);
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let fullText = "";
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('data: ')) {
+                            try {
+                                const json = JSON.parse(line.substring(6));
+                                const textChunk = json.candidates[0].content.parts[0].text;
+                                if (textChunk) {
+                                    fullText += textChunk;
+                                    output.innerText = fullText;
+                                    status.style.opacity = "0"; // Sembunyikan status saat teks mulai muncul
+                                }
+                            } catch (e) {}
+                        }
                     }
-                    throw new Error('Gagal memproses permintaan (Error ' + response.status + ')');
                 }
-
-                const data = await response.json();
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || "Tidak ada respon dari AI.";
             } catch (err) {
-                if (retries > 0) {
-                    await new Promise(res => setTimeout(res, delay));
-                    return fetchGemini(prompt, retries - 1, delay * 2);
-                }
-                throw err;
-            }
-        }
-
-        async function handleURL() {
-            const urlParams = new URLSearchParams(window.location.search);
-            // Mencoba mengambil dari ?q= atau langsung dari ?= (parameter kosong)
-            let query = urlParams.get('q');
-            
-            // Logika khusus untuk menangkap ?=halohalo
-            if (!query) {
-                const fullSearch = window.location.search;
-                if (fullSearch.startsWith('?=')) {
-                    query = decodeURIComponent(fullSearch.substring(2));
-                } else if (fullSearch.length > 1 && !fullSearch.includes('=')) {
-                    // Menangani kasus ?halohalo
-                    query = decodeURIComponent(fullSearch.substring(1));
-                }
-            }
-
-            if (!query) return;
-
-            // UI Update
-            statusContainer.classList.remove('hidden');
-            errorContainer.classList.add('hidden');
-            outputText.classList.add('opacity-30');
-
-            try {
-                const result = await fetchGemini(query);
-                outputText.innerText = result;
-            } catch (err) {
-                errorContainer.classList.remove('hidden');
-                errorText.innerText = "Error: " + err.message;
+                document.getElementById('error-log').classList.remove('hidden');
+                document.getElementById('error-log').innerText = "Gagal: " + err.message;
             } finally {
-                statusContainer.classList.add('hidden');
-                outputText.classList.remove('opacity-30');
+                cursor.classList.add('hidden');
             }
         }
 
-        window.onload = handleURL;
+        function init() {
+            const params = new URLSearchParams(window.location.search);
+            let query = params.get('q');
+
+            // Cek manual untuk format ?=prompt
+            if (!query) {
+                const search = window.location.search;
+                if (search.includes('=')) {
+                    query = decodeURIComponent(search.split('=')[1]);
+                } else if (search.length > 1) {
+                    query = decodeURIComponent(search.substring(1));
+                }
+            }
+
+            if (query) {
+                startStreaming(query);
+            }
+        }
+
+        window.onload = init;
     </script>
 </body>
 </html>
